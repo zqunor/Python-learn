@@ -12,30 +12,49 @@ server_socket.listen()
 
 print(f"服务器启动，监听地址：{HOST}:{PORT}")
 
-# 存储所有连接的客户端
-clients = []
+# 存储所有连接的客户端 (需要加索引对应客户端名字，此处需定义成字典)
+clients = {}
 
 def broadcast(message, sender):
     """广播消息给所有客户端"""
-    for client in clients:
-        if client != sender:
+    for client_socket in clients.values():
+        if client_socket != sender:
             try:
-                client.send(message)
+                client_socket.send(message.encode())
             except:
-                clients.remove(client)
+                remove_client(client_socket)
+
+def remove_client(client_socket):
+    """移除客户端"""
+    for username, sock in clients.items():
+        if sock == client_socket:
+            del clients[username]
+            break
+    client_socket.close()
+    print(f"客户端 {username} 退出聊天")
 
 def handle_client(client_socket):
     """处理客户端连接"""
+    
+    # 版本2.要求客户端输入用户名
+    client_socket.send("请输入您的用户名：".encode())
+    username = client_socket.recv(1024).decode().strip()
+    clients[username] = client_socket
+    print(f"新用户 {username} 已连接。")
+
     while True:
         try:
-            message = client_socket.recv(1024)
-            if message:
-                print(f"收到消息：{message.decode()}")
-                broadcast(message, client_socket)
+            message = client_socket.recv(1024).decode().strip()
+            if message.lower() == 'exit':
+                broadcast(f"{username} 已退出聊天室。", client_socket)
+                remove_client(username)
+                client_socket.close()
+                break
+            else:
+                broadcast(f"{username}: {message}", client_socket)
         except Exception as e:
-            print(f"客户端断开连接：{e}")
-            clients.remove(client_socket)
-            client_socket.close()
+            print(f"客户端 {username} 断开连接：{e}")
+            remove_client(client_socket)
             break
 
 def main():
@@ -43,7 +62,6 @@ def main():
     while True:
         client_socket, addr = server_socket.accept()
         print(f"新连接：{addr}")
-        clients.append(client_socket)
         client_thread = threading.Thread(target=handle_client, args=(client_socket,))
         client_thread.start()
 

@@ -16,7 +16,8 @@ def receive():
     while True:
         try:
             message = client_socket.recv(1024).decode()
-            print(message)
+            print(f"收到消息：{message}")
+
         except:
             print("连接断开。")
             client_socket.close()
