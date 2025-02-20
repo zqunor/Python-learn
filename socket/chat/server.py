@@ -57,13 +57,30 @@ def handle_client(client_socket):
             remove_client(client_socket)
             break
 
+def close_all_clients():
+    """关闭所有客户端连接"""
+    print("正在关闭所有客户端连接...")
+    for username, sock in clients.items():
+        del clients[username]
+        sock.close()
+        print(f"关闭 客户端 {username}")
+
+    clients.clear()
+    print("所有客户端连接已关闭。")
+
 def main():
     """服务器主函数"""
-    while True:
-        client_socket, addr = server_socket.accept()
-        print(f"新连接：{addr}")
-        client_thread = threading.Thread(target=handle_client, args=(client_socket,))
-        client_thread.start()
+    try:
+        while True:
+            client_socket, addr = server_socket.accept()
+            print(f"新连接：{addr}")
+            client_thread = threading.Thread(target=handle_client, args=(client_socket,))
+            client_thread.start()
+    except KeyboardInterrupt:
+        print("\n检测到 Ctrl+C, 正在关闭服务器...")
+        close_all_clients()
+        server_socket.close()
+        print("服务器已关闭。")
 
 if __name__ == "__main__":
     main()
